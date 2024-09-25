@@ -1,0 +1,38 @@
+# Azure Pipelines configuration file
+trigger:
+  branches:
+    include:
+      - main # Trigger pipeline on changes to main branch
+
+pool:
+  vmImage: "ubuntu-latest" # Use the latest Ubuntu VM
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "16.x" # Ensure Node.js 16.x is installed (or change to your Node version)
+    displayName: "Install Node.js"
+
+  - script: |
+      npm install --legacy-peer-deps
+      npm run build
+    displayName: "Install dependencies and build"
+
+  - task: CopyFiles@2
+    inputs:
+      SourceFolder: "dist" # Build output directory for Vite is 'dist'
+      Contents: "**"
+      TargetFolder: "$(Build.ArtifactStagingDirectory)/dist"
+    displayName: "Copy build artifacts"
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: "$(Build.ArtifactStagingDirectory)/dist"
+      ArtifactName: "drop"
+    displayName: "Publish build artifacts"
+
+  - task: AzureStaticWebApp@0 # If deploying to Azure Static Web Apps
+    inputs:
+      app_location: "dist" # Path to build output
+      azure_static_web_apps_api_token: $(deployment_token) # Azure Static Web Apps deployment token
+    displayName: "Deploy to Azure Static Web Apps"
